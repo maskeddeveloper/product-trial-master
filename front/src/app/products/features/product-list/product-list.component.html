@@ -1,0 +1,158 @@
+<h1 class="text-center">Liste des produits</h1>
+
+<div class="filter-container mb-3 flex justify-content-center">
+  <span class="p-input-icon-left w-full md:w-6">
+    <i class="pi pi-search"></i>
+    <input
+      type="text"
+      pInputText
+      [(ngModel)]="filterText"
+      (input)="onFilterChange()"
+      placeholder="Rechercher un produit..."
+      class="w-full"
+    />
+  </span>
+
+  <p-dropdown
+    [options]="categories"
+    [(ngModel)]="selectedCategory"
+    (onChange)="onFilterChange()"
+    placeholder="Catégorie"
+    [showClear]="true"
+    class="w-full md:w-3"
+  ></p-dropdown>
+
+  <p-button label="Créer produit" (onClick)="onCreate()" class="w-full md:w-3"/>
+</div>
+
+<p-dataView
+  #dv
+  [value]="filteredProducts"
+  [rows]="rows"
+  [paginator]="true"
+  [rowsPerPageOptions]="[5, 10, 20]"
+  [first]="first"
+  (onPage)="onPageChange($event)"
+  [totalRecords]="totalRecords"
+  [lazy]="true"
+>
+  <ng-template pTemplate="header">
+    <div class="flex justify-content-end">
+      <p-dropdown
+        [options]="sortOptions"
+        [(ngModel)]="sortField"
+        placeholder="Trier par"
+        (onChange)="onSortChange()"
+        [style]="{'min-width':'12rem'}"
+      ></p-dropdown>
+    </div>
+  </ng-template>
+
+  <ng-template pTemplate="list" let-products>
+    @for (product of products; track product) {
+      <p-card class="block mb-2 product-card">
+        <div class="product-grid">
+          <div class="product-image">
+            @if (product.image) {
+              <img [src]="product.image" [alt]="product.name" class="product-img" />
+            } @else {
+              <div class="placeholder-image">
+                <i class="pi pi-image" style="font-size: 3rem; color: var(--surface-400);"></i>
+              </div>
+            }
+          </div>
+          <div class="product-details">
+            <span class="font-medium text-secondary text-sm product-category">{{ product.category }}</span>
+            <div class="text-lg font-medium text-900 mt-2 product-name">{{ product.name }}</div>
+            <div class="product-description">{{ product.description }}</div>
+
+            <div class="product-info-grid">
+              <div class="info-item">
+                <span class="info-label">Prix:</span>
+                <span class="info-value price">{{ product.price | currency:'EUR' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Référence:</span>
+                <span class="info-value">{{ product.code }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Stock:</span>
+                <span class="info-value" [ngClass]="{'in-stock': product.inventoryStatus === 'INSTOCK', 'low-stock': product.inventoryStatus === 'LOWSTOCK', 'out-of-stock': product.inventoryStatus === 'OUTOFSTOCK'}">
+                  {{ product.inventoryStatus === 'INSTOCK' ? 'En stock' :
+                     product.inventoryStatus === 'LOWSTOCK' ? 'Stock limité' : 'Rupture de stock' }}
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Quantité:</span>
+                <span class="info-value">{{ product.quantity }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Note:</span>
+                <span class="info-value">{{ product.rating }}/5</span>
+              </div>
+            </div>
+
+            <div class="product-quantity mt-3">
+              <span class="info-label">Ajouter au panier:</span>
+              <div class="quantity-controls">
+                <p-inputNumber
+                  [(ngModel)]="productQuantities[product.id]"
+                  [showButtons]="true"
+                  buttonLayout="horizontal"
+                  [min]="1"
+                  [max]="product.quantity"
+                  decrementButtonClass="p-button-danger"
+                  incrementButtonClass="p-button-success"
+                  incrementButtonIcon="pi pi-plus"
+                  decrementButtonIcon="pi pi-minus"
+                  [disabled]="product.inventoryStatus === 'OUTOFSTOCK'"
+                  [style]="{'width':'8rem'}"
+                ></p-inputNumber>
+
+
+              </div>
+              <div class="add-to-cart-button mt-2">
+                <button
+                  pButton
+                  icon="pi pi-shopping-cart"
+                  label="Ajouter"
+                  class="p-button-success"
+                  (click)="addToCartWithQuantity(product, productQuantities[product.id])"
+                  [disabled]="product.inventoryStatus === 'OUTOFSTOCK'"
+                ></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+          <div class="product-actions">
+            <div class="admin-actions">
+              <p-button label="Modifier" severity="secondary" (onClick)="onUpdate(product)"/>
+              <p-button label="Supprimer" severity="danger" (onClick)="onDelete(product)" />
+            </div>
+          </div>
+        </ng-template>
+      </p-card>
+    }
+  </ng-template>
+
+  <ng-template pTemplate="empty">
+    <div class="text-center p-5">
+      <i class="pi pi-search" style="font-size: 3rem; color: var(--surface-400);"></i>
+      <p>Aucun produit trouvé</p>
+    </div>
+  </ng-template>
+</p-dataView>
+
+<p-dialog [(visible)]="isDialogVisible"
+    [style]="{ width: '50vw' }"
+    header="Ajout/Edition produit">
+    <app-product-form
+        [product]="editedProduct()"
+        (save)="onSave($event)"
+        (cancel)="onCancel()"
+    />
+</p-dialog>
+
+<p-toast></p-toast>
